@@ -67,6 +67,7 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+codex/create-django-project-for-random-forest-model-qz73b2
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
@@ -78,3 +79,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Directory where trained models and metrics will be stored
 MODEL_DIR = BASE_DIR / 'prediccion' / 'models'
 os.makedirs(MODEL_DIR, exist_ok=True)
+=======
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Directory where trained models and metrics will be stored inside the app
+MODEL_STORAGE_DIR = os.path.join(BASE_DIR, 'prediccion', 'models')
+main
