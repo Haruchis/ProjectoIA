@@ -1,4 +1,4 @@
-"""Core machine learning utilities for training and prediction."""
+"""Core machine learning utilities for training and loading the Random Forest model."""
 from __future__ import annotations
 
 import json
@@ -24,7 +24,9 @@ MODEL_FILENAME = "random_forest_punt_global.pkl"
 METRICS_FILENAME = "metrics.json"
 
 
-def load_data_from_directory(data_dir: str, return_progress: bool = False) -> pd.DataFrame:
+def load_data_from_directory(
+    data_dir: str, return_progress: bool = False
+) -> pd.DataFrame | Tuple[pd.DataFrame, List[str]]:
     """Load and concatenate all CSV files from a directory.
 
     Performs only minimal validation: ensures the directory exists, finds CSV files,
@@ -62,7 +64,7 @@ def load_data_from_directory(data_dir: str, return_progress: bool = False) -> pd
     if "PUNT_GLOBAL" not in data.columns:
         raise KeyError("La columna objetivo 'PUNT_GLOBAL' no está presente en los datos.")
 
-    # Conversión básica a numérico; si falla se informa al usuario.
+    # Aseguramos que el objetivo sea numérico. Si falla, se lanza un error claro.
     data["PUNT_GLOBAL"] = pd.to_numeric(data["PUNT_GLOBAL"], errors="raise")
 
     # Eliminamos filas con valores faltantes para evitar fallos en el pipeline.
@@ -101,7 +103,10 @@ def _split_feature_types(feature_frame: pd.DataFrame) -> Tuple[List[str], List[s
     return numeric_features, categorical_features
 
 
-def _build_preprocessor(numeric_features: List[str], categorical_features: List[str]) -> ColumnTransformer:
+def _build_preprocessor(
+    numeric_features: List[str],
+    categorical_features: List[str],
+) -> ColumnTransformer:
     """Create the ColumnTransformer for preprocessing features."""
 
     transformers = []
@@ -171,6 +176,7 @@ def train_random_forest(data_dir: str) -> Dict[str, Any]:
         ]
     )
 
+    # Usa MODEL_DIR definido en settings.py (modelo_entrenamiento/settings.py)
     storage_dir = Path(getattr(settings, "MODEL_DIR", Path("models")))
     storage_dir.mkdir(parents=True, exist_ok=True)
 
@@ -187,6 +193,7 @@ def train_random_forest(data_dir: str) -> Dict[str, Any]:
         "columnas_categoricas": categorical_features,
         "progreso": progress,
     }
+
     with open(metrics_path, "w", encoding="utf-8") as metric_file:
         json.dump(serializable_metrics, metric_file, ensure_ascii=False, indent=4)
 

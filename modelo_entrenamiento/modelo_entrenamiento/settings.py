@@ -6,6 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-please-change-this-key'
 DEBUG = True
+
 ALLOWED_HOSTS: list[str] = []
 
 INSTALLED_APPS = [
@@ -64,17 +65,20 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'UTC'
+
 USE_I18N = True
 USE_TZ = True
 
+# Archivos estáticos
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+# Archivos de medios (subidas de usuario)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Directory where trained models and metrics will be stored
+# Directorio donde se guardan los modelos entrenados y métricas
 MODEL_DIR = BASE_DIR / 'prediccion' / 'models'
 os.makedirs(MODEL_DIR, exist_ok=True)

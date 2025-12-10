@@ -13,7 +13,6 @@ from .ml_core import predict_from_dataframe, train_random_forest
 
 def train_model(request):
     """View to trigger model training from CSV files in a directory."""
-
     context: Dict[str, Any] = {}
 
     if request.method == "POST":
@@ -38,7 +37,7 @@ def train_model(request):
                         "success": "Entrenamiento completado correctamente.",
                     }
                 )
-            except Exception as exc:  # noqa: BLE001 - mostramos el error en la plantilla
+            except Exception as exc:  # mostramos el error en la plantilla
                 context["error"] = str(exc)
 
     return render(request, "train.html", context)
@@ -46,7 +45,6 @@ def train_model(request):
 
 def predict(request):
     """View to load a trained model and predict PUNT_GLOBAL for a new CSV."""
-
     context: Dict[str, Any] = {}
 
     if request.method == "POST":
@@ -68,10 +66,11 @@ def predict(request):
 
                 preview_rows = min(len(result_df), 10)
                 context["preview_table"] = result_df.head(preview_rows).to_html(
-                    index=False, classes="table table-striped"
+                    index=False,
+                    classes="table table-striped",
                 )
                 context["has_predictions"] = True
-            except Exception as exc:  # noqa: BLE001 - mostramos el error en la plantilla
+            except Exception as exc:  # mostramos el error en la plantilla
                 context["error"] = str(exc)
 
     return render(request, "predict.html", context)

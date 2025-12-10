@@ -6,61 +6,18 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 2rem; }
         .error { color: #a00; margin-top: 1rem; }
-        .success { color: #0a7; margin-top: 1rem; }
         table { border-collapse: collapse; margin-top: 1rem; width: 100%; }
         th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
         th { background-color: #f5f5f5; }
         .metrics { margin-top: 1rem; }
         .info { margin-top: 0.5rem; color: #555; }
         input[type="text"] { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
-        button { padding: 0.6rem 1.2rem; margin-top: 1rem; cursor: pointer; }
-        nav { margin-bottom: 1rem; }
-        nav a { margin-right: 1rem; }
-
-        .progress-box {
-            background: #f0f7ff;
-            border: 1px solid #b6d4fe;
-            padding: 1rem;
-            margin-top: 1rem;
-            border-radius: 6px;
-        }
-        .progress-title {
-            margin: 0 0 0.5rem 0;
-            font-weight: bold;
-            color: #0a4da6;
-        }
-        .progress-list {
-            list-style: none;
-            padding-left: 0;
-            margin: 0;
-        }
-        .progress-list li {
-            padding: 0.35rem 0.6rem;
-            border-left: 4px solid #0a4da6;
-            margin-bottom: 0.35rem;
-            background: #fff;
-            border-radius: 4px;
-        }
-        .badge {
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            background: #0a4da6;
-            color: white;
-            font-size: 0.85rem;
-            margin-right: 0.5rem;
-        }
+        button { padding: 0.6rem 1.2rem; margin-top: 1rem; }
     </style>
 </head>
 <body>
-    <nav>
-        <a href="/train/">Entrenar</a>
-        <a href="/predict/">Predecir</a>
-    </nav>
-
     <h1>Entrenar modelo Random Forest</h1>
     <p>Indique la carpeta local que contiene los archivos CSV ya preprocesados.</p>
-
     <form method="post">
         {% csrf_token %}
         <label for="data_dir">Ruta del directorio de datos:</label>
@@ -71,9 +28,6 @@
     {% if error %}
         <div class="error">{{ error }}</div>
     {% endif %}
-    {% if success %}
-        <div class="success">{{ success }}</div>
-    {% endif %}
 
     {% if metrics %}
         <div class="metrics">
@@ -81,19 +35,6 @@
             <p class="info">Ruta utilizada: {{ data_dir }}</p>
             <p class="info">Registros: {{ n_registros }} | Número de variables: {{ n_variables }}</p>
             <p class="info">Modelo guardado en: {{ model_path }}</p>
-            <p class="info">Métricas guardadas en: {{ metrics_path }}</p>
-
-            {% if progreso %}
-                <div class="progress-box">
-                    <p class="progress-title">Progreso del proceso</p>
-                    <ul class="progress-list">
-                        {% for paso in progreso %}
-                            <li><span class="badge">{{ forloop.counter }}</span>{{ paso }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
-
             <table>
                 <thead>
                     <tr>
@@ -104,7 +45,6 @@
                 <tbody>
                     <tr><td>R²</td><td>{{ metrics.r2 }}</td></tr>
                     <tr><td>MAE</td><td>{{ metrics.mae }}</td></tr>
-                    <tr><td>MSE</td><td>{{ metrics.mse }}</td></tr>
                     <tr><td>RMSE</td><td>{{ metrics.rmse }}</td></tr>
                     <tr><td>MAPE</td><td>{{ metrics.mape }}</td></tr>
                 </tbody>
@@ -115,4 +55,3 @@
     {% endif %}
 </body>
 </html>
-
