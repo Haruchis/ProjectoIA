@@ -1,93 +1,74 @@
-"""Views for training and predicting Saber Pro PUNT_GLOBAL using Random Forest."""
+"""Views para entrenar y predecir PUNT_GLOBAL usando Random Forest."""
 from __future__ import annotations
 
 from io import BytesIO
-codex/create-django-project-for-random-forest-model-qz73b2
+from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
-from django.http import HttpResponse
+from django.conf import settings
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
 from .ml_core import predict_from_dataframe, train_random_forest
 
 
-def train_model(request):
-    """View to trigger model training from CSV files in a directory."""
-
-from pathlib import Path
-from typing import Any, Dict
-
-import joblib
-import pandas as pd
-from django.conf import settings
-from django.http import HttpResponse
-from django.shortcuts import render
-
-from .ml_core import train_random_forest
-
-
-def train_view(request):
-    """Simple view to trigger model training from CSV files in a directory."""
- main
+def train_model(request: HttpRequest) -> HttpResponse:
+    """
+    Vista para lanzar el entrenamiento del modelo a partir de varios CSV
+    ubicados en un directorio local.
+    """
     context: Dict[str, Any] = {}
 
     if request.method == "POST":
+        # Ruta que el usuario escribe en el formulario
         data_dir = request.POST.get("data_dir", "").strip()
         context["data_dir"] = data_dir
- codex/create-django-project-for-random-forest-model-qz73b2
 
-main
         if not data_dir:
-            context["error"] = "Debe proporcionar la ruta al directorio que contiene los CSV."
+            context["error"] = "Debe proporcionar la ruta al directorio que contiene los archivos CSV."
         else:
             try:
+                # Esta función debe:
+                # - Leer todos los CSV de la carpeta
+                # - Entrenar el modelo con la columna objetivo PUNT_GLOBAL
+                # - Guardar el modelo y métricas en MODEL_DIR
                 result = train_random_forest(data_dir)
+
                 context.update(
                     {
                         "metrics": result.get("metrics", {}),
                         "n_registros": result.get("n_registros"),
                         "n_variables": result.get("n_variables"),
                         "model_path": result.get("model_path"),
- codex/create-django-project-for-random-forest-model-qz73b2
                         "metrics_path": result.get("metrics_path"),
                         "columnas_numericas": result.get("columnas_numericas", []),
                         "columnas_categoricas": result.get("columnas_categoricas", []),
                         "success": "Entrenamiento completado correctamente.",
                     }
                 )
-            except Exception as exc:  # noqa: BLE001 - mostramos el error en la plantilla
-                context["error"] = str(exc)
+                # Si todo salió bien, nos aseguramos de que no quede error viejo
+                context.pop("error", None)
+            except Exception as exc:  # noqa: BLE001
+                context["error"] = f"Error durante el entrenamiento: {exc}"
 
     return render(request, "train.html", context)
 
 
-def predict(request):
-    """View to load a trained model and predict PUNT_GLOBAL for a new CSV."""
-
+def predict(request: HttpRequest) -> HttpResponse:
+    """
+    Vista para cargar un CSV nuevo, aplicar el modelo entrenado y generar
+    la columna PREDICCION_PUNT_GLOBAL. Permite vista previa o descarga.
+    """
     context: Dict[str, Any] = {}
 
-                        "columnas_numericas": result.get("columnas_numericas", []),
-                        "columnas_categoricas": result.get("columnas_categoricas", []),
-                    }
-                )
-            except Exception as exc:  # noqa: BLE001 - mostrar mensaje claro al usuario
-                context["error"] = str(exc)
-
-    return render(request, "prediccion/train.html", context)
-
-
-def predict_view(request):
-    """View to load a trained model and predict PUNT_GLOBAL for a new CSV."""
-    context: Dict[str, Any] = {}
-    model_path = Path(getattr(settings, "MODEL_STORAGE_DIR", Path("models"))) / "random_forest_punt_global.pkl"
-
-    if not model_path.exists():
+    # Verificamos que exista carpeta de modelos
+    model_dir: Path = Path(getattr(settings, "MODEL_DIR", Path("models")))
+    if not model_dir.exists():
         context["error"] = (
-            "No se encontró un modelo entrenado. Entrene el modelo antes de realizar predicciones."
+            "No se encontró el directorio de modelos entrenados. "
+            "Verifique la configuración de MODEL_DIR y entrene el modelo primero."
         )
-        return render(request, "prediccion/predict.html", context)
- main
 
     if request.method == "POST":
         uploaded_file = request.FILES.get("file")
@@ -97,39 +78,32 @@ def predict_view(request):
             context["error"] = "Debe subir un archivo CSV para generar predicciones."
         else:
             try:
-codex/create-django-project-for-random-forest-model-qz73b2
-                dataframe = pd.read_csv(BytesIO(uploaded_file.read()))
-                result_df = predict_from_dataframe(dataframe)
-
-                pipeline = joblib.load(model_path)
+                # Leemos el archivo en memoria
                 data_bytes = uploaded_file.read()
-                dataframe = pd.read_csv(BytesIO(data_bytes))
+                df = pd.read_csv(BytesIO(data_bytes))
 
-                predictions = pipeline.predict(dataframe)
-                result_df = dataframe.copy()
-                result_df["PREDICCION_PUNT_GLOBAL"] = predictions
-main
+                # Esta función debe:
+                # - Cargar el modelo desde MODEL_DIR
+                # - Aplicar el preprocesamiento
+                # - Devolver un DataFrame con PREDICCION_PUNT_GLOBAL
+                result_df = predict_from_dataframe(df)
 
+                # Si el usuario pidió descarga, devolvemos el CSV
                 if action == "download":
                     response = HttpResponse(content_type="text/csv")
-                    response["Content-Disposition"] = "attachment; filename=predicciones.csv"
+                    response["Content-Disposition"] = 'attachment; filename="predicciones.csv"'
                     result_df.to_csv(response, index=False)
                     return response
 
-codex/create-django-project-for-random-forest-model-qz73b2
+                # Si es vista previa, mostramos las primeras filas
                 preview_rows = min(len(result_df), 10)
                 context["preview_table"] = result_df.head(preview_rows).to_html(
-                    index=False, classes="table table-striped"
+                    index=False,
+                    classes="table table-striped",
                 )
-
-                context["preview_table"] = result_df.head().to_html(index=False, classes="table table-striped")
- main
                 context["has_predictions"] = True
-            except Exception as exc:  # noqa: BLE001 - mostramos el error en la plantilla
-                context["error"] = str(exc)
+                context.pop("error", None)
+            except Exception as exc:  # noqa: BLE001
+                context["error"] = f"Error al generar predicciones: {exc}"
 
- codex/create-django-project-for-random-forest-model-qz73b2
     return render(request, "predict.html", context)
-
-    return render(request, "prediccion/predict.html", context)
- main
