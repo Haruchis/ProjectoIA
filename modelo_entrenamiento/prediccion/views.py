@@ -2,6 +2,19 @@
 from __future__ import annotations
 
 from io import BytesIO
+codex/create-django-project-for-random-forest-model-qz73b2
+from typing import Any, Dict
+
+import pandas as pd
+from django.http import HttpResponse
+from django.shortcuts import render
+
+from .ml_core import predict_from_dataframe, train_random_forest
+
+
+def train_model(request):
+    """View to trigger model training from CSV files in a directory."""
+
 from pathlib import Path
 from typing import Any, Dict
 
@@ -16,11 +29,15 @@ from .ml_core import train_random_forest
 
 def train_view(request):
     """Simple view to trigger model training from CSV files in a directory."""
+ main
     context: Dict[str, Any] = {}
 
     if request.method == "POST":
         data_dir = request.POST.get("data_dir", "").strip()
         context["data_dir"] = data_dir
+ codex/create-django-project-for-random-forest-model-qz73b2
+
+main
         if not data_dir:
             context["error"] = "Debe proporcionar la ruta al directorio que contiene los CSV."
         else:
@@ -32,6 +49,24 @@ def train_view(request):
                         "n_registros": result.get("n_registros"),
                         "n_variables": result.get("n_variables"),
                         "model_path": result.get("model_path"),
+ codex/create-django-project-for-random-forest-model-qz73b2
+                        "metrics_path": result.get("metrics_path"),
+                        "columnas_numericas": result.get("columnas_numericas", []),
+                        "columnas_categoricas": result.get("columnas_categoricas", []),
+                        "success": "Entrenamiento completado correctamente.",
+                    }
+                )
+            except Exception as exc:  # noqa: BLE001 - mostramos el error en la plantilla
+                context["error"] = str(exc)
+
+    return render(request, "train.html", context)
+
+
+def predict(request):
+    """View to load a trained model and predict PUNT_GLOBAL for a new CSV."""
+
+    context: Dict[str, Any] = {}
+
                         "columnas_numericas": result.get("columnas_numericas", []),
                         "columnas_categoricas": result.get("columnas_categoricas", []),
                     }
@@ -52,6 +87,7 @@ def predict_view(request):
             "No se encontró un modelo entrenado. Entrene el modelo antes de realizar predicciones."
         )
         return render(request, "prediccion/predict.html", context)
+ main
 
     if request.method == "POST":
         uploaded_file = request.FILES.get("file")
@@ -61,6 +97,10 @@ def predict_view(request):
             context["error"] = "Debe subir un archivo CSV para generar predicciones."
         else:
             try:
+codex/create-django-project-for-random-forest-model-qz73b2
+                dataframe = pd.read_csv(BytesIO(uploaded_file.read()))
+                result_df = predict_from_dataframe(dataframe)
+
                 pipeline = joblib.load(model_path)
                 data_bytes = uploaded_file.read()
                 dataframe = pd.read_csv(BytesIO(data_bytes))
@@ -68,6 +108,7 @@ def predict_view(request):
                 predictions = pipeline.predict(dataframe)
                 result_df = dataframe.copy()
                 result_df["PREDICCION_PUNT_GLOBAL"] = predictions
+main
 
                 if action == "download":
                     response = HttpResponse(content_type="text/csv")
@@ -75,9 +116,20 @@ def predict_view(request):
                     result_df.to_csv(response, index=False)
                     return response
 
+codex/create-django-project-for-random-forest-model-qz73b2
+                preview_rows = min(len(result_df), 10)
+                context["preview_table"] = result_df.head(preview_rows).to_html(
+                    index=False, classes="table table-striped"
+                )
+
                 context["preview_table"] = result_df.head().to_html(index=False, classes="table table-striped")
+ main
                 context["has_predictions"] = True
             except Exception as exc:  # noqa: BLE001 - mostramos el error en la plantilla
                 context["error"] = str(exc)
 
+ codex/create-django-project-for-random-forest-model-qz73b2
+    return render(request, "predict.html", context)
+
     return render(request, "prediccion/predict.html", context)
+ main
