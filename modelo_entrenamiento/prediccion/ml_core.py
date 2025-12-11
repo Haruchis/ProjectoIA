@@ -15,7 +15,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-
 TARGET_COL = "PUNT_GLOBAL"
 
 
@@ -23,25 +22,7 @@ def _load_csvs_from_dir(data_dir: str | Path) -> pd.DataFrame:
     """
     Carga y concatena todos los CSV dentro de un directorio.
 
-    :param data_dir: Ruta al directorio con archivos .csv
-    :return: DataFrame concatenado
-    """
-    data_path = Path(data_dir)
-
-    if not data_path.exists() or not data_path.is_dir():
-        raise ValueError(f"La ruta especificada no es un directorio válido: {data_path}")
-
-    csv_files: List[Path] = sorted(data_path.glob("*.csv"))
-    if not csv_files:
-        raise ValueError(f"No se encontraron archivos CSV en el directorio: {data_path}")
-
-    frames: List[pd.DataFrame] = []
-
-def _load_csvs_from_dir(data_dir: str | Path) -> pd.DataFrame:
-    """
-    Carga y concatena todos los CSV dentro de un directorio.
-
-    :param data_dir: Ruta al directorio con archivos .csv
+    :param data_dir: Ruta al directororio con archivos .csv
     :return: DataFrame concatenado
     """
     data_path = Path(data_dir)
@@ -54,7 +35,6 @@ def _load_csvs_from_dir(data_dir: str | Path) -> pd.DataFrame:
     if not csv_files:
         raise ValueError(f"No se encontraron archivos CSV en el directorio: {data_path}")
 
-    # Aquí vamos a ir acumulando los DataFrames
     frames: List[pd.DataFrame] = []
 
     for f in csv_files:
@@ -82,18 +62,9 @@ def _load_csvs_from_dir(data_dir: str | Path) -> pd.DataFrame:
     return df
 
 
-
-    if not frames:
-        raise ValueError("No se pudo cargar ningún CSV válido.")
-
-    df = pd.concat(frames, ignore_index=True)
-    if df.empty:
-        raise ValueError("El DataFrame combinado está vacío. Revise los archivos CSV.")
-
-    return df
-
-
-def _build_preprocessor_and_features(df: pd.DataFrame) -> tuple[ColumnTransformer, list[str], list[str]]:
+def _build_preprocessor_and_features(
+    df: pd.DataFrame,
+) -> tuple[ColumnTransformer, list[str], list[str]]:
     """
     A partir de un DataFrame, identifica columnas numéricas y categóricas
     y construye un ColumnTransformer con escalado y OneHotEncoder.
@@ -105,13 +76,17 @@ def _build_preprocessor_and_features(df: pd.DataFrame) -> tuple[ColumnTransforme
     categorical_cols = features_df.select_dtypes(exclude=["number"]).columns.tolist()
 
     if not numeric_cols and not categorical_cols:
-        raise ValueError("No se encontraron columnas numéricas ni categóricas para entrenar el modelo.")
+        raise ValueError(
+            "No se encontraron columnas numéricas ni categóricas para entrenar el modelo."
+        )
 
     transformers = []
     if numeric_cols:
         transformers.append(("num", StandardScaler(), numeric_cols))
     if categorical_cols:
-        transformers.append(("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols))
+        transformers.append(
+            ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols)
+        )
 
     preprocessor = ColumnTransformer(transformers)
 
@@ -183,6 +158,7 @@ def train_random_forest(data_dir: str | Path) -> Dict[str, Any]:
         "n_test": int(len(X_test)),
     }
 
+    # Carpeta donde se guardan el modelo y métricas
     model_dir: Path = Path(getattr(settings, "MODEL_DIR", Path("models")))
     model_dir.mkdir(parents=True, exist_ok=True)
 
