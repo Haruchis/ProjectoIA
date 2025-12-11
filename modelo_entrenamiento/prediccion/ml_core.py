@@ -91,6 +91,23 @@ def load_data_from_directory(data_dir: str, return_progress: bool = False) -> pd
     return data
 
 
+def _coerce_feature_columns(features: pd.DataFrame) -> pd.DataFrame:
+    """Convert columns to numeric when fully convertible, otherwise to strings."""
+
+    cleaned = features.copy()
+
+    for column in cleaned.columns:
+        coerced = pd.to_numeric(cleaned[column], errors="coerce")
+        if coerced.notna().all():
+            # Columna completamente numérica, preservamos dtype numérico real
+            cleaned[column] = coerced
+        else:
+            # Mezcla de tipos: forzamos a string para evitar errores en OneHotEncoder
+            cleaned[column] = cleaned[column].astype(str)
+
+    return cleaned
+
+
 def _split_feature_types(feature_frame: pd.DataFrame) -> Tuple[List[str], List[str]]:
     """Identify numeric and categorical columns based on dtypes."""
 
@@ -155,15 +172,7 @@ def train_random_forest(data_dir: str) -> Dict[str, Any]:
     data, progress = load_data_from_directory(data_dir, return_progress=True)
 
     y = data["PUNT_GLOBAL"]
-    X = data.drop(columns=["PUNT_GLOBAL"]).copy()
-
-    # Intentamos convertir columnas de objetos numéricos a valores numéricos reales
-    # para aprovechar el escalado. Si toda la columna puede convertirse, se mantiene
-    # como numérica; de lo contrario, quedará como categórica.
-    for column in X.columns:
-        coerced = pd.to_numeric(X[column], errors="coerce")
-        if coerced.notna().sum() == len(X[column]):
-            X[column] = coerced
+    X = _coerce_feature_columns(data.drop(columns=["PUNT_GLOBAL"]))
 
     numeric_features, categorical_features = _split_feature_types(X)
     X = _harmonize_feature_dtypes(X, categorical_features)
@@ -248,10 +257,7 @@ def predict_from_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
         dataframe = dataframe.drop(columns=["PUNT_GLOBAL"])
 
     # Repetimos la lógica de armonización de tipos para evitar errores de codificación.
-    for column in dataframe.columns:
-        coerced = pd.to_numeric(dataframe[column], errors="coerce")
-        if coerced.notna().sum() == len(dataframe[column]):
-            dataframe[column] = coerced
+    dataframe = _coerce_feature_columns(dataframe)
     _, categorical_features = _split_feature_types(dataframe)
     dataframe = _harmonize_feature_dtypes(dataframe, categorical_features)
 
