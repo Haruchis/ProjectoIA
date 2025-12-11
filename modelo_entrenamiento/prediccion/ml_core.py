@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+# Columna objetivo
 TARGET_COL = "PUNT_GLOBAL"
 
 
@@ -22,7 +23,7 @@ def _load_csvs_from_dir(data_dir: str | Path) -> pd.DataFrame:
     """
     Carga y concatena todos los CSV dentro de un directorio.
 
-    :param data_dir: Ruta al directororio con archivos .csv
+    :param data_dir: Ruta al directorio con archivos .csv
     :return: DataFrame concatenado
     """
     data_path = Path(data_dir)
@@ -102,22 +103,40 @@ def train_random_forest(data_dir: str | Path) -> Dict[str, Any]:
     """
     progress: list[str] = []
 
+    # 1. Carga de datos
     progress.append("Iniciando carga de archivos CSV...")
     df = _load_csvs_from_dir(data_dir)
     progress.append(f"Se cargaron {len(df)} filas en total desde los CSV.")
 
+    # 2. Validar columna objetivo
     if TARGET_COL not in df.columns:
         raise ValueError(
             f"La columna objetivo '{TARGET_COL}' no está presente en los datos. "
             f"Columnas disponibles: {list(df.columns)}"
         )
 
+    # 3. Limpiar NaN en la columna objetivo (para evitar 'Input y contains NaN')
+    filas_nan = df[TARGET_COL].isna().sum()
+    if filas_nan > 0:
+        progress.append(
+            f"Se encontraron {filas_nan} filas con {TARGET_COL} vacío/NaN. "
+            "Se eliminarán antes de entrenar."
+        )
+        df = df.dropna(subset=[TARGET_COL])
+
+    if df.empty:
+        raise ValueError(
+            "Después de eliminar filas con PUNT_GLOBAL vacío, no quedaron datos para entrenar."
+        )
+
+    # 4. Separar X e y
     y = df[TARGET_COL]
     X = df.drop(columns=[TARGET_COL])
 
     progress.append("Construyendo preprocesador numérico/categórico...")
     preprocessor, num_cols, cat_cols = _build_preprocessor_and_features(df)
 
+    # 5. Definir modelo
     rf = RandomForestRegressor(
         n_estimators=200,
         random_state=42,
@@ -131,6 +150,7 @@ def train_random_forest(data_dir: str | Path) -> Dict[str, Any]:
         ]
     )
 
+    # 6. Split train/test
     progress.append("Dividiendo en conjuntos de entrenamiento y prueba...")
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -139,9 +159,11 @@ def train_random_forest(data_dir: str | Path) -> Dict[str, Any]:
         random_state=42,
     )
 
+    # 7. Entrenar
     progress.append("Entrenando el modelo Random Forest...")
     pipeline.fit(X_train, y_train)
 
+    # 8. Métricas
     progress.append("Calculando métricas de evaluación...")
     y_pred = pipeline.predict(X_test)
     mae = mean_absolute_error(y_test, y_pred)
@@ -158,7 +180,7 @@ def train_random_forest(data_dir: str | Path) -> Dict[str, Any]:
         "n_test": int(len(X_test)),
     }
 
-    # Carpeta donde se guardan el modelo y métricas
+    # 9. Carpeta donde se guardan el modelo y métricas
     model_dir: Path = Path(getattr(settings, "MODEL_DIR", Path("models")))
     model_dir.mkdir(parents=True, exist_ok=True)
 
