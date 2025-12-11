@@ -108,6 +108,34 @@ def _coerce_feature_columns(features: pd.DataFrame) -> pd.DataFrame:
     return cleaned
 
 
+def _drop_missing_after_typing(
+    features: pd.DataFrame, target: pd.Series, progress: List[str]
+) -> Tuple[pd.DataFrame, pd.Series]:
+    """Remove rows with missing values after type coercion.
+
+    Drop rows where any feature or the target contains ``NaN``. This is a minimal,
+    transparent cleaning step to avoid scikit-learn errors when datasets include
+    celdas vacías o valores faltantes mezclados con texto.
+    """
+
+    mask = features.notna().all(axis=1) & target.notna()
+    removed = int(len(features) - mask.sum())
+    if removed:
+        progress.append(
+            f"Filas eliminadas tras coerción de tipos por valores faltantes: {removed}"
+        )
+
+    cleaned_features = features.loc[mask].reset_index(drop=True)
+    cleaned_target = target.loc[mask].reset_index(drop=True)
+
+    if cleaned_features.empty:
+        raise ValueError(
+            "No quedan filas válidas después de eliminar valores faltantes. Revise los datos."
+        )
+
+    return cleaned_features, cleaned_target
+
+
 def _split_feature_types(feature_frame: pd.DataFrame) -> Tuple[List[str], List[str]]:
     """Identify numeric and categorical columns based on dtypes."""
 
@@ -173,6 +201,9 @@ def train_random_forest(data_dir: str) -> Dict[str, Any]:
 
     y = data["PUNT_GLOBAL"]
     X = _coerce_feature_columns(data.drop(columns=["PUNT_GLOBAL"]))
+
+    # Nueva limpieza mínima tras coerción para eliminar cualquier NaN residual.
+    X, y = _drop_missing_after_typing(X, y, progress)
 
     numeric_features, categorical_features = _split_feature_types(X)
     X = _harmonize_feature_dtypes(X, categorical_features)
